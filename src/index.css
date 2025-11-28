@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* --------------------------
+   GLOBAL UI ENHANCEMENTS
+--------------------------- */
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-gray-50 text-gray-800 antialiased;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+    Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+}
+
+/* Melhor renderização de botões e inputs */
+button,
+input,
+textarea,
+select {
+  @apply outline-none;
+}
+
+/* Remove highlight azul feio em mobile */
+*:focus {
+  @apply ring-2 ring-blue-500 ring-offset-2;
+}
+
+/* Suaviza scrollbar para ficar mais profissional */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
