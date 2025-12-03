@@ -7,6 +7,7 @@ import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ModelPage } from './pages/ModelPage';
+import { ModelViewPage } from './pages/ModelViewPage'; // 👈 Mantém este
 
 function App() {
   return (
@@ -16,7 +17,7 @@ function App() {
           {/* Public Routes */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
-
+          
           {/* Protected Routes */}
           <Route
             path="/"
@@ -28,6 +29,7 @@ function App() {
           >
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<DashboardPage />} />
+            <Route path="model/view/:id" element={<ModelViewPage />} />
             <Route path="model" element={<ModelPage />} />
           </Route>
 

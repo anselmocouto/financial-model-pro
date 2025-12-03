@@ -1,94 +1,152 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import { useAuth } from '../contexts/AuthContext';
 import { useFinancialModel } from '../hooks/useFinancialModel';
 import { useSimulations } from '../hooks/useSimulations';
+
 import { Header } from '../components/layout/Header';
 import { KPICards } from '../components/model/KPICards';
+import { IndicatorAnalysis } from '../components/model/IndicatorAnalysis';
 import { InputsPanel } from '../components/model/InputsPanel';
 import { ChartsTab } from '../components/model/ChartsTab';
 import { TablesTab } from '../components/model/TablesTab';
-import { HistoryTab } from '../components/model/HistoryTab';
+import { CompareScenariosTab } from '../components/model/CompareScenariosTab';
+import { SectorSelector } from '../components/model/SectorSelector';
+import { RevenueGrowthEditor } from '../components/model/RevenueGrowthEditor';
+
+import { BarChart3, Table2, GitCompare } from "lucide-react";
 
 export const ModelPage = () => {
+
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [message, setMessage] = useState('');
-  const [activeTab, setActiveTab] = useState('charts');
-  const [projectName, setProjectName] = useState(''); // NOVO!
 
-  const { inputs, setInputs, scenario, loadScenario, modelData } = useFinancialModel();
+  // HOOK PRINCIPAL DO MODELO FINANCEIRO
+  const {
+    inputs,
+    setInputs,
+    scenario,
+    loadScenario,
+    modelData
+  } = useFinancialModel();
+
   const { simulations, loading, createSimulation, deleteSimulation } = useSimulations();
 
+  const [message, setMessage] = useState('');
+  const [activeTab, setActiveTab] = useState('charts');
+  const [showAnalysis, setShowAnalysis] = useState(false);
+  const [projectName, setProjectName] = useState('');
+
+  const [scenariosData, setScenariosData] = useState({
+    base: null,
+    optimistic: null,
+    pessimistic: null
+  });
+
+  // ⭐ APLICAÇÃO DO TEMPLATE DE SETOR (Hospital, SaaS, Varejo etc.)
+  const handleApplySectorTemplate = (template) => {
+    setInputs(prev => ({
+      ...prev,
+      ...template
+    }));
+  };
+
+  // 2. FUNÇÃO DE CALLBACK (adicionar no ModelPage)
+const handleRevenueGrowthChange = (newGrowthStats) => {
+  setInputs(prev => ({
+    ...prev,
+    revenueGrowthStats: newGrowthStats
+  }));
+};
+
+  // Atualiza dados quando troca cenário
+  useEffect(() => {
+    if (!modelData) return;
+
+    setScenariosData(prev => ({
+      ...prev,
+      [scenario]: {
+        npvEquity: modelData.npvEquity,
+        irrEquity: modelData.irrEquity,
+        moic: modelData.moic,
+        projection: modelData.projection
+      }
+    }));
+  }, [scenario, modelData]);
+
+
+  // 💾 Salvar o cenário atual
   const handleSaveSimulation = async () => {
-    // VALIDAÇÃO DO NOME
     if (!projectName || projectName.trim().length < 3) {
-      setMessage('❌ Digite um nome para o projeto (mínimo 3 caracteres)');
+      setMessage('Digite um nome para o projeto (mínimo 3 caracteres)');
       setTimeout(() => setMessage(''), 4000);
       return;
     }
 
     try {
-      const scenarioLabel = scenario.charAt(0).toUpperCase() + scenario.slice(1);
+      const label = scenario.charAt(0).toUpperCase() + scenario.slice(1);
       const dateStr = new Date().toLocaleDateString('pt-BR');
-      
+
       const simulation = {
-        name: `${projectName.trim()} - ${scenarioLabel} - ${dateStr}`, // NOME MELHORADO!
-        scenario: scenario,
-        inputs: inputs,
+        name: `${projectName.trim()} - ${label} - ${dateStr}`,
+        scenario,
+        inputs,
         summary: {
           npvEquity: modelData.npvEquity,
           irrEquity: modelData.irrEquity,
           moic: modelData.moic,
+          npvProject: modelData.npvProject,
+          irrProject: modelData.irrProject,
         },
         projection: modelData.projection,
       };
 
       await createSimulation(simulation);
-      setMessage(`✅ "${projectName}" salvo com sucesso no Supabase!`);
-      
+
+      setMessage(`"${projectName}" salvo com sucesso!`);
       setTimeout(() => setMessage(''), 4000);
+
     } catch (error) {
-      setMessage('❌ Erro ao gravar simulação: ' + error.message);
+      setMessage("Erro ao salvar: " + error.message);
       setTimeout(() => setMessage(''), 4000);
     }
   };
 
-  // FUNÇÃO PARA SALVAR TODOS OS 3 CENÁRIOS DE UMA VEZ
+
+  // 💾 Salvar todos os cenários automaticamente
   const handleSaveAllScenarios = async () => {
     if (!projectName || projectName.trim().length < 3) {
-      setMessage('❌ Digite um nome para o projeto (mínimo 3 caracteres)');
-      setTimeout(() => setMessage(''), 4000);
+      setMessage("Digite um nome para o projeto.");
+      setTimeout(() => setMessage(''), 3000);
       return;
     }
 
     try {
-      setMessage('⏳ Salvando todos os cenários...');
-      const dateStr = new Date().toLocaleDateString('pt-BR');
-      const scenarios = ['base', 'optimistic', 'pessimistic'];
-      
-      for (const scen of scenarios) {
-        // Calcular modelo para cada cenário
+      setMessage("Salvando todos os cenários...");
+
+      const labels = {
+        base: "Base",
+        optimistic: "Otimista",
+        pessimistic: "Pessimista"
+      };
+
+      for (const scen of Object.keys(labels)) {
         loadScenario(scen);
-        
-        // Aguardar um pouco para o cálculo processar
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        const scenarioLabel = scen.charAt(0).toUpperCase() + scen.slice(1);
-        const scenarioLabels = {
-          base: 'Base',
-          optimistic: 'Otimista',
-          pessimistic: 'Pessimista'
-        };
-        
+        await new Promise(r => setTimeout(r, 120));
+
+        const dateStr = new Date().toLocaleDateString('pt-BR');
+
         const simulation = {
-          name: `${projectName.trim()} - ${scenarioLabels[scen]} - ${dateStr}`,
+          name: `${projectName.trim()} - ${labels[scen]} - ${dateStr}`,
           scenario: scen,
-          inputs: inputs,
+          inputs,
           summary: {
             npvEquity: modelData.npvEquity,
             irrEquity: modelData.irrEquity,
             moic: modelData.moic,
+            npvProject: modelData.npvProject,
+            irrProject: modelData.irrProject,
           },
           projection: modelData.projection,
         };
@@ -96,132 +154,180 @@ export const ModelPage = () => {
         await createSimulation(simulation);
       }
 
-      setMessage(`✅ "${projectName}" - Todos os 3 cenários salvos com sucesso!`);
-      setTimeout(() => setMessage(''), 5000);
-    } catch (error) {
-      setMessage('❌ Erro ao gravar cenários: ' + error.message);
+      setMessage("Todos os cenários foram salvos!");
       setTimeout(() => setMessage(''), 4000);
+
+    } catch (error) {
+      setMessage("Erro ao salvar cenários.");
+      setTimeout(() => setMessage(''), 3000);
     }
   };
 
+
+  // 🗑 Excluir simulação
   const handleDeleteSimulation = async (id) => {
-    if (window.confirm('Tem certeza que deseja excluir esta simulação?')) {
-      try {
-        await deleteSimulation(id);
-        setMessage('✅ Simulação excluída com sucesso!');
-        setTimeout(() => setMessage(''), 3000);
-      } catch (error) {
-        setMessage('❌ Erro ao excluir simulação');
-        setTimeout(() => setMessage(''), 3000);
-      }
+    if (!window.confirm("Excluir esta simulação?")) return;
+
+    try {
+      await deleteSimulation(id);
+      setMessage("Simulação excluída.");
+      setTimeout(() => setMessage(''), 3000);
+    } catch {
+      setMessage("Erro ao excluir.");
+      setTimeout(() => setMessage(''), 3000);
     }
   };
 
+  // ---------------------------------------------------------------------
+  // RENDERIZAÇÃO DA PÁGINA
+  // ---------------------------------------------------------------------
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <Header
-        scenario={scenario}
-        onScenarioChange={loadScenario}
+    <div className="space-y-8 pb-10">
+    
+      <Header 
+        scenario={scenario} 
+        onScenarioChange={loadScenario} 
         message={message}
+        showBackButton={true}
       />
 
-      {/* CAMPO NOME DO PROJETO - NOVO! */}
-      <div className="bg-white rounded-2xl shadow-lg p-6 border-2 border-blue-200">
-        <label className="block text-sm font-bold text-gray-700 mb-3">
-          📝 Nome do Projeto *
+      {/* Nome do projeto */}
+      <div className="bg-white rounded-2xl shadow-md p-6 border border-blue-200">
+        <label className="block text-sm font-semibold text-gray-700 mb-2">
+          Nome do Projeto *
         </label>
+
         <input
-          type="text"
           value={projectName}
           onChange={(e) => setProjectName(e.target.value)}
-          className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-gray-900 placeholder-gray-400 font-semibold"
-          placeholder="Ex: Expansão Filial SP, Projeto App Mobile, Investimento Imóvel..."
-          maxLength={100}
+          placeholder="Ex: Expansão Unidade SP"
+          className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-medium"
         />
-        <p className="mt-2 text-xs text-gray-500">
-          Este nome será usado para identificar suas simulações. Escolha algo descritivo para facilitar a busca depois.
-        </p>
+
         {projectName && (
-          <p className="mt-2 text-sm text-blue-600 font-semibold">
-            📌 Será salvo como: "{projectName} - {scenario.charAt(0).toUpperCase() + scenario.slice(1)} - {new Date().toLocaleDateString('pt-BR')}"
+          <p className="mt-3 text-blue-600 text-sm font-semibold">
+            📌 Será salvo como: "{projectName} - {scenario.toUpperCase()} - {new Date().toLocaleDateString('pt-BR')}"
           </p>
         )}
       </div>
 
-      {/* KPI Cards */}
+      {/* ⭐ Seletor de Setor */}
+      <SectorSelector 
+        currentScenario={scenario}
+        onApplyTemplate={handleApplySectorTemplate}
+        inputs={inputs}
+      />
+
+      {/* NOVO: EDITOR DE CRESCIMENTO ANO A ANO */}
+       <RevenueGrowthEditor 
+        revenueGrowthStats={inputs.revenueGrowthStats}
+        onChange={handleRevenueGrowthChange}
+       />
+
+
+      {/* KPI */}
       <KPICards modelData={modelData} inputs={inputs} />
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Inputs Panel - Sidebar */}
+      {/* ⭐ Botão mostrar/ocultar análise */}
+      <div className="flex justify-center">
+        <button
+          onClick={() => setShowAnalysis(!showAnalysis)}
+          className="
+            group relative px-8 py-4 rounded-2xl font-bold text-lg shadow-xl
+            transition-all duration-300 transform hover:scale-105
+            bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 
+            text-white
+          "
+        >
+          {showAnalysis ? 'Ocultar Análise' : 'Ver Análise dos Indicadores'}
+        </button>
+      </div>
+
+      {showAnalysis && (
+        <div className="animate-fadeIn">
+          <IndicatorAnalysis modelData={modelData} inputs={inputs} />
+        </div>
+      )}
+
+      {/* Conteúdo principal */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+
+        {/* Inputs */}
         <div className="lg:col-span-1">
           <InputsPanel
             inputs={inputs}
             setInputs={setInputs}
             onSave={handleSaveSimulation}
-            onSaveAll={handleSaveAllScenarios} // NOVO!
+            onSaveAll={handleSaveAllScenarios}
             loading={loading}
-            projectName={projectName} // NOVO!
+            projectName={projectName}
           />
         </div>
 
-        {/* Charts/Tables/History - Main Area */}
+        {/* Tabs */}
         <div className="lg:col-span-3">
-          <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-            {/* Tabs Navigation */}
-            <div className="bg-gradient-to-r from-slate-100 to-slate-200 border-b border-gray-300">
-              <div className="flex">
-                <button
-                  onClick={() => setActiveTab('charts')}
-                  className={`flex-1 px-6 py-4 font-semibold transition ${
-                    activeTab === 'charts'
-                      ? 'bg-white text-blue-600 border-b-4 border-blue-600'
-                      : 'text-gray-600 hover:bg-gray-100'
-                  }`}
-                >
-                  📊 Gráficos
-                </button>
-                <button
-                  onClick={() => setActiveTab('tables')}
-                  className={`flex-1 px-6 py-4 font-semibold transition ${
-                    activeTab === 'tables'
-                      ? 'bg-white text-blue-600 border-b-4 border-blue-600'
-                      : 'text-gray-600 hover:bg-gray-100'
-                  }`}
-                >
-                  📋 Demonstrativos
-                </button>
-                <button
-                  onClick={() => setActiveTab('history')}
-                  className={`flex-1 px-6 py-4 font-semibold transition ${
-                    activeTab === 'history'
-                      ? 'bg-white text-blue-600 border-b-4 border-blue-600'
-                      : 'text-gray-600 hover:bg-gray-100'
-                  }`}
-                >
-                  💾 Histórico ({simulations.length})
-                </button>
-              </div>
+          <div className="bg-white rounded-2xl shadow-md border overflow-hidden">
+
+            <div className="flex bg-slate-100 border-b">
+              <button
+                onClick={() => setActiveTab("charts")}
+                className={`flex-1 py-4 flex items-center justify-center gap-2 font-semibold ${
+                  activeTab === "charts"
+                    ? "bg-white border-b-4 border-blue-500 text-blue-600"
+                    : "text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                <BarChart3 className="w-5 h-5" />
+                Gráficos
+              </button>
+
+              <button
+                onClick={() => setActiveTab("tables")}
+                className={`flex-1 py-4 flex items-center justify-center gap-2 font-semibold ${
+                  activeTab === "tables"
+                    ? "bg-white border-b-4 border-blue-500 text-blue-600"
+                    : "text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                <Table2 className="w-5 h-5" />
+                Demonstrativos
+              </button>
+
+              <button
+                onClick={() => setActiveTab("compare")}
+                className={`flex-1 py-4 flex items-center justify-center gap-2 font-semibold ${
+                  activeTab === "compare"
+                    ? "bg-white border-b-4 border-blue-500 text-blue-600"
+                    : "text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                <GitCompare className="w-5 h-5" />
+                Comparar
+              </button>
             </div>
 
-            {/* Tab Content */}
             <div className="p-6">
-              {activeTab === 'charts' && <ChartsTab projection={modelData.projection} />}
-              {activeTab === 'tables' && (
-                <TablesTab projection={modelData.projection} inputs={inputs} />
-              )}
-              {activeTab === 'history' && (
-                <HistoryTab
-                  simulations={simulations}
-                  onDelete={handleDeleteSimulation}
-                  loading={loading}
+              {activeTab === "charts" && <ChartsTab projection={modelData.projection} />}
+              {activeTab === "tables" && <TablesTab projection={modelData.projection} inputs={inputs} />}
+              {activeTab === "compare" && scenariosData.base && scenariosData.optimistic && scenariosData.pessimistic ? (
+                <CompareScenariosTab
+                  baseData={scenariosData.base}
+                  optimisticData={scenariosData.optimistic}
+                  pessimisticData={scenariosData.pessimistic}
                 />
-              )}
+              ) : activeTab === "compare" ? (
+                <div className="text-center py-12 text-gray-500">
+                  <p className="text-lg font-semibold mb-2">⚠️ Calcule todos os cenários primeiro</p>
+                  <p className="text-sm">Clique em Base → Otimista → Pessimista para gerar os dados.</p>
+                </div>
+              ) : null}
             </div>
+
           </div>
         </div>
+
       </div>
+
     </div>
   );
 };

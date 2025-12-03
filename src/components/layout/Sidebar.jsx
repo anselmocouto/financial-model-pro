@@ -1,55 +1,104 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FileText, Settings, HelpCircle } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { LogOut, User, ArrowLeft } from 'lucide-react';
 
-export const Sidebar = () => {
-  const location = useLocation();
+export const Header = ({ scenario, onScenarioChange, message }) => {
+  const { user, profile, signOut } = useAuth();
+  const navigate = useNavigate();
 
-  const menuItems = [
-    { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { path: '/model', icon: FileText, label: 'Nova Modelagem' },
-    { path: '/settings', icon: Settings, label: 'Configurações' },
-    { path: '/help', icon: HelpCircle, label: 'Ajuda' },
-  ];
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      navigate('/login');
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+    }
+  };
+
+  const scenarioBtn = (value, label, activeColor) => (
+    <button
+      onClick={() => onScenarioChange(value)}
+      className={`
+        px-4 py-2 rounded-xl font-semibold transition shadow-sm
+        border border-white/20 backdrop-blur-sm
+        ${scenario === value
+          ? `bg-white text-${activeColor}-600 shadow-md`
+          : `bg-white/10 text-white hover:bg-white/20`
+        }
+      `}
+    >
+      {label}
+    </button>
+  );
 
   return (
-    <div
-      className="
-        w-64 rounded-2xl p-4 h-fit sticky top-6
-        bg-white/30 backdrop-blur-xl
-        border border-white/40 shadow-xl
-      "
-    >
-      <nav className="space-y-2">
-        {menuItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = location.pathname === item.path;
+    <header className="bg-gradient-to-r from-blue-600 to-purple-700 p-6 rounded-3xl shadow-2xl text-white mb-8">
+      
+      {/* BOTÃO VOLTAR AO DASHBOARD */}
+      <button
+        onClick={() => navigate('/dashboard')}
+        className="flex items-center gap-2 text-white/90 hover:text-white font-semibold mb-4 transition group"
+      >
+        <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
+        Voltar ao Dashboard
+      </button>
 
-          return (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={`
-                flex items-center gap-3 px-4 py-3 rounded-xl font-medium
-                transition-all duration-200
-                ${isActive
-                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
-                  : 'text-gray-700 hover:bg-white/40 hover:shadow-md'
-                }
-              `}
+      <div className="flex flex-col lg:flex-row justify-between gap-6">
+
+        {/* LEFT SECTION */}
+        <div className="flex-1">
+          <h1 className="text-4xl font-bold drop-shadow-sm">
+            Modelagem Financeira PRO
+          </h1>
+
+          <p className="text-blue-100 mt-1 text-sm tracking-wide">
+            DRE • Balanço • Fluxo de Caixa • Valuation
+          </p>
+
+          {message && (
+            <div className="mt-4 bg-white/20 px-4 py-2 rounded-xl text-sm shadow-sm inline-block">
+              {message}
+            </div>
+          )}
+        </div>
+
+        {/* RIGHT SECTION */}
+        <div className="flex flex-col items-start lg:items-end gap-4">
+
+          {/* USER CARD */}
+          <div className="
+            flex items-center gap-4 bg-white/10 px-5 py-3 rounded-2xl
+            shadow-md border border-white/20 backdrop-blur
+          ">
+            <div className="flex items-center gap-2">
+              <User size={22} className="opacity-80" />
+              <div className="text-left leading-tight">
+                <p className="text-sm font-semibold">
+                  {profile?.full_name || user?.email?.split('@')[0]}
+                </p>
+                <p className="text-xs text-blue-100">{user?.email}</p>
+              </div>          
+            </div>
+          
+
+            <button
+              onClick={handleLogout}
+              className="p-2 hover:bg-white/20 rounded-xl transition"
+              title="Sair"
             >
-              <Icon
-                size={20}
-                className={`
-                  transition-transform duration-200
-                  ${isActive ? 'scale-110' : 'group-hover:scale-105'}
-                `}
-              />
-              <span>{item.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
-    </div>
+              <LogOut size={18} />
+            </button>
+          </div>
+            
+            {/* SCENARIOS */}
+            <div className="flex gap-3">
+            {scenarioBtn('base', 'Base', 'blue')}
+            {scenarioBtn('optimistic', 'Otimista', 'green')}
+            {scenarioBtn('pessimistic', 'Pessimista', 'red')}
+            </div>
+        </div>
+      </div>
+    </header>
   );
 };

@@ -1,5 +1,7 @@
-import { useState, useMemo } from 'react';
+import react, { useState, useMemo } from "react";
 import { calculateFinancialModel } from '../utils/calculations';
+import { SECTOR_OPTIONS, applySectorTemplate } from "../constants/sectorTemplates.js";
+
 
 const DEFAULT_INPUTS = {
   inflation: 0.045,
@@ -34,26 +36,41 @@ export const useFinancialModel = () => {
     return calculateFinancialModel(inputs);
   }, [inputs]);
 
+  // ⭐ NOVA FUNÇÃO: Aplicar template de setor
+  const applySector = (sectorKey) => {
+    const template = applySectorTemplate(sectorKey, scenario);
+    if (template) {
+      setInputs(prev => ({
+        ...prev,
+        ...template
+      }));
+    }
+  };
+
   const loadScenario = (type) => {
     setScenario(type);
     
+    // Aplica valores padrão do cenário (como antes)
     if (type === 'base') {
       setInputs(prev => ({ 
         ...prev, 
         revenueGrowthStats: [0.15, 0.12, 0.10, 0.08, 0.06, 0.05, 0.045, 0.045, 0.045, 0.045], 
-        cogsPercent: 0.40 
+        cogsPercent: 0.40,
+        opexPercent: 0.25
       }));
     } else if (type === 'optimistic') {
       setInputs(prev => ({ 
         ...prev, 
         revenueGrowthStats: [0.25, 0.20, 0.15, 0.10, 0.08, 0.06, 0.05, 0.05, 0.05, 0.05], 
-        cogsPercent: 0.35 
+        cogsPercent: 0.35,
+        opexPercent: 0.22
       }));
     } else if (type === 'pessimistic') {
       setInputs(prev => ({ 
         ...prev, 
         revenueGrowthStats: [0.05, 0.04, 0.04, 0.03, 0.03, 0.02, 0.02, 0.02, 0.02, 0.02], 
-        cogsPercent: 0.48 
+        cogsPercent: 0.48,
+        opexPercent: 0.30
       }));
     }
   };
@@ -68,6 +85,7 @@ export const useFinancialModel = () => {
     setInputs,
     scenario,
     loadScenario,
+    applySector, // ⭐ Nova função exportada
     resetInputs,
     modelData
   };

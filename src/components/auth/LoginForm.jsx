@@ -58,7 +58,7 @@ export const LoginForm = () => {
             </motion.div>
 
             <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
-              Financial Model Pro
+            Modelagem Financeira Pro
             </h1>
             <p className="text-gray-500 mt-1 text-sm">
               Entre na sua conta para continuar
@@ -139,7 +139,7 @@ export const LoginForm = () => {
           </div>
 
           <p className="mt-10 text-center text-sm text-gray-400">
-            © 2025 Financial Model Pro
+            © 2025 Modelagem Financeira Pro 1.1
           </p>
         </motion.div>
       </div>

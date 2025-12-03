@@ -1,9 +1,9 @@
 import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, User } from 'lucide-react';
+import { LogOut, User, ArrowLeft } from 'lucide-react';
 
-export const Header = ({ scenario, onScenarioChange, message }) => {
+export const Header = ({ scenario, onScenarioChange, message, showBackButton = false }) => {
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
 
@@ -34,6 +34,28 @@ export const Header = ({ scenario, onScenarioChange, message }) => {
 
   return (
     <header className="bg-gradient-to-r from-blue-600 to-purple-700 p-6 rounded-3xl shadow-2xl text-white mb-8">
+      
+    {/* BOTÃO VOLTAR - Só aparece quando showBackButton = true */}
+    {showBackButton && (
+  <button
+    onClick={() => navigate('/dashboard')}
+    className="
+      flex items-center gap-2 px-4 py-2
+      bg-white/10 backdrop-blur border border-white/20
+      rounded-xl shadow hover:bg-white/20
+      text-white font-semibold transition-all duration-200
+      hover:scale-[1.02] active:scale-[0.98]
+      group
+    "
+  >
+    <ArrowLeft
+      size={18}
+      className="opacity-80 group-hover:-translate-x-1 transition-transform"
+    />
+    <span>Voltar ao Dashboard</span>
+  </button>
+)}
+
       <div className="flex flex-col lg:flex-row justify-between gap-6">
 
         {/* LEFT SECTION */}
@@ -71,7 +93,6 @@ export const Header = ({ scenario, onScenarioChange, message }) => {
               </div>          
             </div>
           
-
             <button
               onClick={handleLogout}
               className="p-2 hover:bg-white/20 rounded-xl transition"
@@ -81,12 +102,14 @@ export const Header = ({ scenario, onScenarioChange, message }) => {
             </button>
           </div>
             
-            {/* SCENARIOS */}
+          {/* SCENARIOS - Só aparecem quando temos cenários */}
+          {scenario && onScenarioChange && (
             <div className="flex gap-3">
-            {scenarioBtn('base', 'Base', 'blue')}
-            {scenarioBtn('optimistic', 'Otimista', 'green')}
-            {scenarioBtn('pessimistic', 'Pessimista', 'red')}
+              {scenarioBtn('base', 'Base', 'blue')}
+              {scenarioBtn('optimistic', 'Otimista', 'green')}
+              {scenarioBtn('pessimistic', 'Pessimista', 'red')}
             </div>
+          )}
         </div>
       </div>
     </header>
